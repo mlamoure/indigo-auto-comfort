@@ -26,23 +26,29 @@ Required:
 - a variable in your Indigo config that contains a boolean value for whether someone is home
 
 For each fan / zone, you'll need (see the config before for further explanations):
-- a variable in your Indigo setup for the target speed
+
+INPUTS Required:
 - a variable in your Indigo setup for the ideal temperature for that zone
 - a device in your Indigo setup that contains a temperature sensor for the zone
 - a device in your Indigo setup that contains a motion or presence value for the zone
 - a device in your Indigo setup for your thermostat for the zone
 - a device in your Indigo setup for the weather (must contain a feelslike temperature) for your area
+
+OUTPUTS Required:
+- a variable in your Indigo setup for the target speed
 - a variable in your Indigo setup for lock expiration time for that zone
 - a variable in your Indigo setup for last changed time for that zone
 
-It is recommended that you DISABLE the Smart Mode/Auto Comfort, Motion, Schedule, Sleep Mode features from your fan.  This script replaces all of that.
+
+It is recommended that you DISABLE the Smart Mode/Auto Comfort, Motion, Schedule, Sleep Mode features from your Haiku fan.  This script replaces all of that.
 If you don't, this script will essentially fight your fan for control.
 
-
 Recommended setup in Indigo:
-	1. After you configure this script, you should create an action group to execute the script.  Run it to see that it's working properly.
+	1. After you configure this script by updating the LoadConfig() function, you should create an action group to execute the script.  Run it to see that it's working properly.
 	2. To trigger the script, I recommend the plugin called Group Change Listener.  Otherwise, you could create a schedule to execute the script every 5 or 10 minutes.  Remember, the script is intended to be run frequently.
 		Make the trigger execute the action group, with a 2-3 second delay.  The delay will make it so that multiple occurrences of the trigger will be consolidated to one execution of the script.
+
+	With the Group Change Listener, select all the variables and devices that are configured in the LoadConfig(), set the trigger to execute the action group that runs this script.
 
 Troubleshooting the behavior:
 
