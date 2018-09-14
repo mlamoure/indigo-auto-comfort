@@ -29,16 +29,18 @@ Required:
 For each fan / zone, you'll need (see the config before for further explanations):
 
 INPUTS Required:
+- a device in your Indigo setup for the weather (must contain a feelslike temperature) for your area.  Typically you would only have one of these devices, but will need to assign the same device to each fan/zone.
+
+These INPUTS are needed for each fan/zone:
 - a variable in your Indigo setup for the ideal temperature for that zone
 - a device in your Indigo setup that contains a temperature sensor for the zone
 - a device in your Indigo setup that contains a motion or presence value for the zone
 - a device in your Indigo setup for your thermostat for the zone
-- a device in your Indigo setup for the weather (must contain a feelslike temperature) for your area
 
-OUTPUTS Required:
-- a variable in your Indigo setup for the target speed
-- a variable in your Indigo setup for lock expiration time for that zone
-- a variable in your Indigo setup for last changed time for that zone
+OUTPUTS Required (each of these are required for each defined FanZone in the config):
+- a variable in your Indigo setup for the target speed for the fan/one
+- a variable in your Indigo setup for lock expiration time for that fan/zone
+- a variable in your Indigo setup for last changed time for that fan/zone
 
 
 It is recommended that you DISABLE the Smart Mode/Auto Comfort, Motion, Schedule, Sleep Mode features from your Haiku fan.  This script replaces all of that.
@@ -90,7 +92,7 @@ IF the thermostat (for the fan zone) has both a heat and cool setpoint above zer
 
 The script will go into WARM SUMMER DAY MODE if:
 	- The "ideal temperature" for that zone is COOLER than the outside feelslike temp
-	- The difference between the current inside temperature of the zone and the ideal temperature is positive (warmer)
+	- The difference (Temperature Delta) between the current inside temperature of the zone and the ideal temperature is positive (warmer)
 
 The script will go into COOL SUMMER DAY MODE if: 
 	- The ideal temperature is WARMER than the outside temperature
