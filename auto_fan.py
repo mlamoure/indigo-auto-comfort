@@ -147,7 +147,7 @@ def LoadConfig(config):
 	# A Indigo variable to hold the target speed that this script will set the fan speed to.  This is used to retain the value that the script set to, so that it can detect if that speed changed outside of the script (so that the script does not fight a manual change that happened from the remote or app)
 	sunroomFan.target_speed_varId = 1844925823
 
-	# a Indigo variable for the ideal temperature for the room/zone.  This is a important value, used to calculate the target speed for the fan.  I recommend using a thermostat setpoint to start.  You can make this more intricate by changing the ideal temperature with more sophisticaed logic, and firing this script when that change happens.
+	# a Indigo variable for the ideal temperature for the room/zone.  This is a important value, used to calculate the target speed for the fan.  I recommend using a thermostat setpoint to start.  You can make this more intricate by changing the ideal temperature with more sophisticated logic, and firing this script when that change happens.
 	sunroomFan.ideal_temperature_varId = 206761205
 
 	# a Indigo Sensor device that has a property of .SensorValue (like a multi sensor) that contains the temp for the zone/room
@@ -156,7 +156,7 @@ def LoadConfig(config):
 	# a Indigo Sensor device that has a property of .onOffState (like a motion sensor) that contains the presence for the zone/room
 	sunroomFan.presence_devId = 1276366371
 
-	# The string name (case sensitive) for the thermostat for the zone.  The script will look for the deviceID matching the name.  I do this rather than take a devId directly in case the device changes, but the name is consistant (there's a bug with NEST plugin where this happens)
+	# The string name (case sensitive) for the thermostat for the zone.  The script will look for the deviceID matching the name.  I do this rather than take a devId directly in case the device changes, but the name is consistent (there's a bug with NEST plugin where this happens)
 	sunroomFan.zone_thermostat_name = "Downstairs Thermostat"
 
 	# The Indigo devId for a weather device.  Will look for the "feelslike" state.
