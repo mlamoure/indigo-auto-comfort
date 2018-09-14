@@ -5,6 +5,7 @@ import time
 ##############################################################
 CHANGE LOG:
 
+- 9/14/2019: Version 1.0.1  Fixed a bunch of errors that I created while commenting version 1.0
 - 9/13/2018: Version 1.0.  Added comments to explain the crazy logic.
 
 
@@ -523,7 +524,7 @@ def AutoComfort(config, fanZones):
 	#################################################################
 
 		# For the summer months
-		if (fan.getCoolSetpoint() > 0 and (fan.isIdealTempIsCoolerThanOutside() or fan.getTemperatureDelta() > 0)) or (fan.getCoolSetpoint() > 0 and fan.getHeatSetpoint() == 0 and fan.summer_fan_at_bedtime and is_nighttime):
+		if (fan.getCoolSetpoint() > 0 and (fan.isIdealTempIsCoolerThanOutside() or fan.getTemperatureDelta() > 0)) or (fan.getCoolSetpoint() > 0 and fan.getHeatSetpoint() == 0 and fan.summer_fan_at_bedtime and config.isNighttime()):
 			delta_fanspeed_impact = 0
 
 			if config.script_debug:
@@ -535,8 +536,8 @@ def AutoComfort(config, fanZones):
 				target_speed = target_speed + 1
 
 			# if humidity or temperature are high at night, raise one more level
-			if config.isNighttime() and fan.summer_fan_at_bedtime and (fan.getHumidity() > BEDTIME_HIGH_HUMIDITY or fan.getFeelsLikeTemp() > BEDTIME_HIGH_FEELSLIKE_TEMPERATURE):
-				reasons.append("humidity (" + str(fan.getHumidity()) + "%) or outside feels like temeprature (" + str(fan.getFeelsLikeTemp()) + "°F) is high during sleeping hours.  [Impact: +1]")
+			if config.isNighttime() and fan.summer_fan_at_bedtime and (fan.getHumidity() > config.BEDTIME_HIGH_HUMIDITY or fan.getFeelsLikeTemp() > config.BEDTIME_HIGH_FEELSLIKE_TEMPERATURE):
+				reasons.append("humidity (" + str(fan.getHumidity()) + "%) or outside feels like temperature (" + str(fan.getFeelsLikeTemp()) + "°F) is high during sleeping hours.  [Impact: +1]")
 				target_speed = target_speed + 1
 
 			for entry in fan.temp_steps:
@@ -580,11 +581,11 @@ def AutoComfort(config, fanZones):
 			if fan.getMinTarget() > 1:
 				fan.min_target = 1
 
-			reasons.append("ideal temperature of " + str(fan.getIdealTemperature()) + "°F is wamer than the current outside temperature (" + str(fan.getFeelsLikeTemp()) + "°F) [max_target: 0]")
+			reasons.append("ideal temperature of " + str(fan.getIdealTemperature()) + "°F is warmer than the current outside temperature (" + str(fan.getFeelsLikeTemp()) + "°F) [max_target: 0]")
 		
 		# Fall, spring, and winter
 		elif fan.getHeatSetpoint() > 0:
-			if script_debug:
+			if config.script_debug:
 				reasons.append("Mode: fall, spring, and winter mode")
 
 			fan.max_target = 1
