@@ -5,7 +5,8 @@ import time
 ##############################################################
 CHANGE LOG:
 
-- 9/14/2019: Version 1.0.1  Fixed a bunch of errors that I created while commenting version 1.0
+- 10/6/2018: Version 1.0.2 Fixed some bugs and adjusted based on latest improvements to SenseMe plugin
+- 9/14/2018: Version 1.0.1  Fixed a bunch of errors that I created while commenting version 1.0
 - 9/13/2018: Version 1.0.  Added comments to explain the crazy logic.
 
 
@@ -119,6 +120,14 @@ In SPRING/FALL MODE:
 	- The fan will not go above a speed of 1
 	- The fan will turn on when the HVAC (heat) is turned on.  It will be off otherwise
 
+
+EXAMPLE LOG:
+
+MBR fan: increasing from 2 to 3 due to the change to Master Bedroom Presence, reasons influencing the target speed: 
+     HVAC is not running [Impact: 0]
+     presence is detected [Impact: +1]
+     current temperature (74.8°F) is between 3.5°F and 4.5°F (3.8°F) from the desired temperature of 71.0°F [Impact: target_speed: +2  min_target: 1]
+
 '''
 
 def LoadConfig(config):
@@ -136,6 +145,8 @@ def LoadConfig(config):
 	# Whether or not someone is home at the house.  If no one is home, the script does not turn on the fan.
 	config.someone_home = indigo.variables[1451030242].getValue(bool) # "someone_home"
 
+	# The Indigo devId for a weather device.  Will look for the "feelslike" state.
+	config.weather_devId = 56720865
 
 	###################
 	# Define each of your Fan Zones.  Copy this section for each fan you have.
@@ -158,9 +169,6 @@ def LoadConfig(config):
 
 	# The string name (case sensitive) for the thermostat for the zone.  The script will look for the deviceID matching the name.  I do this rather than take a devId directly in case the device changes, but the name is consistent (there's a bug with NEST plugin where this happens)
 	sunroomFan.zone_thermostat_name = "Downstairs Thermostat"
-
-	# The Indigo devId for a weather device.  Will look for the "feelslike" state.
-	sunroomFan.weather_devId = 56720865
 
 	# a Indigo VarId to hold the locked state for this fan zone.
 	sunroomFan.locked_varId = 975280043
@@ -214,6 +222,10 @@ def LoadConfig(config):
 	# devId of the sensor with the humidity value for the fan/zone
 	sunroomFan.humidity_devId = 155284095
 
+	# this is a way to force your fan to have a minimum speed based on the month / time of day
+	if not config.isNighttime() and (datetime.date.today().month < 11 and datetime.date.today().month > 3):
+		sunroomFan.min_target = 1
+
 	############## END FAN ZONE
 
 	# MBR Fan -- Required items
@@ -223,7 +235,6 @@ def LoadConfig(config):
 	MBRFan.temperature_devId = 180918713
 	MBRFan.presence_devId = 458359032
 	MBRFan.zone_thermostat_name = "Upstairs Thermostat"
-	MBRFan.weather_devId = 56720865
 	MBRFan.current_event_varId = 874147138
 	MBRFan.locked_varId = 1160436796
 	MBRFan.lastchanged_varId = 315118607
@@ -254,6 +265,10 @@ def LoadConfig(config):
 			TempStep(7.0, None, 6, 4, None)
 		]
 
+	# this is a way to force your fan to have a minimum speed based on the month / time of day.  Optional, feel free to comment out.
+	if config.isNighttime() and (datetime.date.today().month < 11 and datetime.date.today().month > 3):
+		MBRFan.min_target = 1
+
 	# MBR Fan -- Optional items
 	MBRFan.summer_fan_at_bedtime = True
 	MBRFan.enable_woosh_mode_when_present = False
@@ -262,10 +277,24 @@ def LoadConfig(config):
 	# For each fan zone that you created, add it to the array here to be returned.  You are all done.
 	return [sunroomFan, MBRFan]
 
-###################### END CONFIG #################
+###################### END CONFIG --- STOP EDITING #################
 class AutoConfortConfig(object):
 	def __init__(self):
 		pass
+
+	def getFeelsLikeTemp(self):
+		try:
+			if "feelslike" in indigo.devices[self.weather_devId].states:
+				return indigo.devices[self.weather_devId].states["feelslike"]
+			elif "temp" in indigo.devices[self.weather_devId].states:
+				return indigo.devices[self.weather_devId].states["temp"]
+
+			indigo.server.log("could not determine the feels like temp")
+			return -1
+
+		except:
+			indigo.server.log("could not determine the feels like temp")
+			return -1
 
 	def isNighttime(self):
 		return (not (datetime.datetime.now().time() >= datetime.time(self.NIGHTTIME_END_HOUR,00) and datetime.datetime.now().time() <= datetime.time(self.NIGHTTIME_START_HOUR,00)))
@@ -301,13 +330,13 @@ class FanZone(object):
 		if self.getCurrentRoomTemperature() > self.always_on_inside_temp and self.min_target < 1:
 			self.min_target = 1
 
-		if self.getFeelsLikeTemp() > self.always_on_outside_temp and self.min_target < 1:
+		if config.getFeelsLikeTemp() > self.always_on_outside_temp and self.min_target < 1:
 			self.min_target = 1
 
-		if config.someone_home and config.isNighttime() and self.getFeelsLikeTemp() > 69:
+		if config.someone_home and config.isNighttime() and config.getFeelsLikeTemp() > 69:
 			self.min_target = 3
 
-		if config.someone_home and not config.isNighttime() and self.getFeelsLikeTemp() > 80:
+		if config.someone_home and not config.isNighttime() and config.getFeelsLikeTemp() > 80:
 			self.min_target = 3
 
 		return self.min_target
@@ -332,7 +361,7 @@ class FanZone(object):
 		try:
 			return float(indigo.devices[self.temperature_devId].sensorValue)
 		except:
-			indigo.server.log(fan.zoneName + " fan script: could not determine the current room temperature")
+			indigo.server.log(self.zoneName + " fan script: could not determine the current room temperature")
 			return -1.0
 
 	def getCoolSetpoint(self):
@@ -369,7 +398,7 @@ class FanZone(object):
 			else:
 				return (indigo.devices[presence_devId].onOffState)
 		except:
-			indigo.server.log(fan.zoneName + " fan script: could not determine the local presence")
+			indigo.server.log(self.zoneName + " fan script: could not determine the local presence")
 			return False
 
 	def HVAC_Running(self):
@@ -380,19 +409,12 @@ class FanZone(object):
 		try:
 			return indigo.devices[self.zone_thermostat_id].states["hvac_state"] == "cooling" or indigo.devices[self.zone_thermostat_id].states["hvac_state"] == "heating"
 		except Exception as e:
-			indigo.server.log(fan.zoneName + " fan script: could not determine the HVAC status.  error: " + str(e))
+			indigo.server.log(self.zoneName + " fan script: could not determine the HVAC status.  error: " + str(e))
 			return False
-
-	def getFeelsLikeTemp(self):
-		try:
-			return indigo.devices[self.weather_devId].states["feelslike"]
-		except:
-			indigo.server.log(fan.zoneName + " fan script: could not determine the feels like temp")
-			return -1
 
 	def findThermostat(self):
 		if self.zone_thermostat_name is None or len(self.zone_thermostat_name) == 0:
-			indigo.server.log(fan.zoneName + " fan script: no thermostat name is set")
+			indigo.server.log(self.zoneName + " fan script: no thermostat name is set")
 			return False
 
 		for dev in indigo.devices:
@@ -400,7 +422,7 @@ class FanZone(object):
 				self.zone_thermostat_id = dev.id
 				return True
 
-		indigo.server.log(fan.zoneName + " fan script: could not find the thermostat")
+		indigo.server.log(self.zoneName + " fan script: could not find the thermostat")
 		return False
 
 	def getEventChanged(self):
@@ -411,20 +433,28 @@ class FanZone(object):
 			return "unknown event"
 
 	def isIdealTempIsCoolerThanOutside(self):
-		return self.getIdealTemperature() < self.getFeelsLikeTemp()
+		return self.getIdealTemperature() < config.getFeelsLikeTemp()
 
 	def getTemperatureDelta(self):
 		return self.getCurrentRoomTemperature() - self.getIdealTemperature()
 
 	def getCurrentSpeed(self):
-		if "off" in self.fanDev.states["statusString"]:
-			return 0
-
 		try:
-			return int(self.fanDev.states["speed"])
+			currentSpeed = int(self.fanDev.states["speed"])
 		except:
 			indigo.server.log(fan.zoneName + " fan script: could not determine the current fan speed")
-			return 0
+			currentSpeed = 0
+
+		fanIsOn = self.fanDev.states["fan"]
+
+		if currentSpeed == 0 and fanIsOn:
+			indigo.server.log(fan.zoneName + " fan script: fan speed/onState mismatch (currentSpeed: " + str(currentSpeed) + ", fanIsOn: " + str(fanIsOn))
+			return 1
+		elif not fanIsOn and currentSpeed > 0:
+			indigo.server.log(fan.zoneName + " fan script: fan speed/onState mismatch (currentSpeed: " + str(currentSpeed) + ", fanIsOn: " + str(fanIsOn))
+
+		return currentSpeed
+
 
 	def wooshMode(self):
 		try:
@@ -481,7 +511,7 @@ def AutoComfort(config, fanZones):
 
 	'''
 	for fan in fanZones:
-	#	if script_debug:
+	#	if config.script_debug:
 	#		indigo.server.log(fan.zoneName + ": now processing")
 
 		fan.config = config
@@ -538,8 +568,8 @@ def AutoComfort(config, fanZones):
 				target_speed = target_speed + 1
 
 			# if humidity or temperature are high at night, raise one more level
-			if config.isNighttime() and fan.summer_fan_at_bedtime and (fan.getHumidity() > config.BEDTIME_HIGH_HUMIDITY or fan.getFeelsLikeTemp() > config.BEDTIME_HIGH_FEELSLIKE_TEMPERATURE):
-				reasons.append("humidity (" + str(fan.getHumidity()) + "%) or outside feels like temperature (" + str(fan.getFeelsLikeTemp()) + "°F) is high during sleeping hours.  [Impact: +1]")
+			if config.isNighttime() and fan.summer_fan_at_bedtime and (fan.getHumidity() > config.BEDTIME_HIGH_HUMIDITY or config.getFeelsLikeTemp() > config.BEDTIME_HIGH_FEELSLIKE_TEMPERATURE):
+				reasons.append("humidity (" + str(fan.getHumidity()) + "%) or outside feels like temperature (" + str(config.getFeelsLikeTemp()) + "°F) is high during sleeping hours.  [Impact: +1]")
 				target_speed = target_speed + 1
 
 			for entry in fan.temp_steps:
@@ -575,7 +605,7 @@ def AutoComfort(config, fanZones):
 		
 		# for the cooler days in the early summer.  AC is on, but it's cool outside.
 		elif fan.getCoolSetpoint() > 0 and fan.getHeatSetpoint() == 0 and not fan.isIdealTempIsCoolerThanOutside():
-			if script_debug:
+			if config.script_debug:
 				reasons.append("Mode: summer cool day mode")
 
 			fan.max_target = 1
@@ -583,7 +613,7 @@ def AutoComfort(config, fanZones):
 			if fan.getMinTarget() > 1:
 				fan.min_target = 1
 
-			reasons.append("ideal temperature of " + str(fan.getIdealTemperature()) + "°F is warmer than the current outside temperature (" + str(fan.getFeelsLikeTemp()) + "°F) [max_target: 0]")
+			reasons.append("ideal temperature of " + str(fan.getIdealTemperature()) + "°F is warmer than the current outside temperature (" + str(config.getFeelsLikeTemp()) + "°F) [max_target: 0]")
 		
 		# Fall, spring, and winter
 		elif fan.getHeatSetpoint() > 0:
@@ -670,7 +700,7 @@ def AutoComfort(config, fanZones):
 			debug_str = debug_str + " max_target speed: " + str(fan.getMaxTarget()) + "\n"
 			debug_str = debug_str + " target speed: " + str(target_speed) + "\n"
 			debug_str = debug_str + " room temp: " + str(fan.getCurrentRoomTemperature()) + "°F" + "\n"
-			debug_str = debug_str + " outside temp: " + str(fan.getFeelsLikeTemp()) + "°F" + "\n"
+			debug_str = debug_str + " outside temp: " + str(config.getFeelsLikeTemp()) + "°F" + "\n"
 			debug_str = debug_str + " ideal temp: " + str(fan.getIdealTemperature()) + "°F" + "\n"
 			debug_str = debug_str + " getCoolSetpoint: " + str(fan.getCoolSetpoint()) + "°F" + "\n"
 			debug_str = debug_str + " getHeatSetpoint: " + str(fan.getHeatSetpoint()) + "°F" + "\n"
