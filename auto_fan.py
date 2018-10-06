@@ -182,7 +182,7 @@ def LoadConfig(config):
 	# Set the inside temperature that the fan will always remain on a minimum level speed (1)
 	sunroomFan.always_on_inside_temp = 86
 
-	# Configure the temperature steps.  Each step is processed sequentially until one is matched.  It's recommended to make them chronological and sequential, where the max_temp for the previous is the min_temp for the next... see example.
+	# Configure the temperature steps (I couldnt come up with a better name for them).  Each step is processed sequentially until one is matched.  It's recommended to make them chronological and sequential, where the max_temp for the previous is the min_temp for the next... see example.
 	# Constructor for the object:
 	#		min_temp = The beginning of the range for that step.  You can use None to indicate no floor.
 	#		max_temp = The end of the range for that step.  You can use None to indicate no ceiling.
@@ -193,6 +193,8 @@ def LoadConfig(config):
 	# examples:
 	# TempStep(None, -0.5, None, None, 1) = If the temperature delta (see dictionary) of the room is between 0 and -.5 degrees colder (F) of the ideal temperature, do not set a target, set the maximum speed of the fan to 1 (other factors cannot raise the target speed above 1)
 	# TempStep(3.5, 4.5, 2, None, None) = If the temperature delta (see dictionary) of the room is between 3.5 and 4.5 degrees warmer (f) from the ideal temperature, increase the target speed of the fan by two.
+
+	# if you are confused, try my defaut values and read the debug output to understand it yourself.
 
 	sunroomFan.temp_steps = [
 		TempStep(None, -0.5, None, None, 1),
@@ -252,7 +254,7 @@ def LoadConfig(config):
 		TempStep(7.0, None, 5, 4, None)
 	]
 
-	# use the isNighttime() to adjust the TempSteps for nighttime.
+	# use the isNighttime() to adjust the TempSteps for nighttime.  These are slightly more aggressive than the defaults.
 	if config.isNighttime():
 		MBRFan.temp_steps = [
 			TempStep(None, -1.0, None, None, 1),
